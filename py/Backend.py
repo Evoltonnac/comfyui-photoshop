@@ -8,6 +8,9 @@ import base64
 from aiohttp import web, WSMsgType
 import folder_paths
 from server import PromptServer
+from PIL import Image
+from io import BytesIO
+from .decrypt import get_sha256, decrypt_image, decrypt_image_v2
 
 # Set up paths
 nodepath = os.path.join(
@@ -206,9 +209,26 @@ async def handle_render_done(request):
     try:
         filename = request.rel_url.query.get("filename")
         patch = os.path.join(folder_paths.get_temp_directory(), filename)
+        password = request.rel_url.query.get("password", "123qwe")  # 获取密码，默认值为"123qwe"
 
+        # 读取加密图片并解密
         with open(patch, "rb") as image_file:
-            encoded_string = base64.b64encode(image_file.read()).decode("utf-8")
+            image_data = image_file.read()
+            image = Image.open(BytesIO(image_data))
+            
+            # 检查是否需要解密
+            pnginfo = image.info or {}
+            if 'Encrypt' in pnginfo:
+                if pnginfo["Encrypt"] == 'pixel_shuffle':
+                    decrypt_image(image, get_sha256(password))
+                elif pnginfo["Encrypt"] == 'pixel_shuffle_2':
+                    decrypt_image_v2(image, get_sha256(password))
+            
+            # 将解密后的图片转换为base64
+            buffered = BytesIO()
+            image.save(buffered, format="PNG")
+            encoded_string = base64.b64encode(buffered.getvalue()).decode("utf-8")
+            
         await send_message(photoshop_users, "render", encoded_string)
     except Exception as e:
         print(f"# PS: Error reading or sending render.png: {e}")

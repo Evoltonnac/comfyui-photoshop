@@ -151,12 +151,14 @@ class ComfyUIToPhotoshop(SaveImage):
         self.type = "temp"
         self.prefix_append = "_temp_"
         self.compress_level = 4
+        self.password = "123qwe"  # 默认密码
 
     @staticmethod
     def INPUT_TYPES():
         return {
             "required": {
                 "output": ("IMAGE",),
+                "password": ("STRING", {"default": "123qwe"}),  # 添加密码输入
             },
             "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
         }
@@ -164,9 +166,9 @@ class ComfyUIToPhotoshop(SaveImage):
     FUNCTION = "execute"
     CATEGORY = "Photoshop"
 
-    async def connect_to_backend(self, filename):
+    async def connect_to_backend(self, filename, password):
         try:
-            url = f"http://127.0.0.1:8188/ps/renderdone?filename={filename}"
+            url = f"http://127.0.0.1:8188/ps/renderdone?filename={filename}&password={password}"
             async with aiohttp.ClientSession() as session:
                 async with session.get(url) as response:
                     return await response.text()
@@ -176,12 +178,13 @@ class ComfyUIToPhotoshop(SaveImage):
     def execute(
         self,
         output: torch.Tensor,
+        password="123qwe",
         filename_prefix="PS_OUTPUTS",
         prompt=None,
         extra_pnginfo=None,
     ):
         x = self.save_images(output, filename_prefix, prompt, extra_pnginfo)
-        asyncio.run(self.connect_to_backend(x["ui"]["images"][0]["filename"]))
+        asyncio.run(self.connect_to_backend(x["ui"]["images"][0]["filename"], password))
         return x
 
 
