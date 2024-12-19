@@ -10,7 +10,7 @@ import folder_paths
 from server import PromptServer
 from PIL import Image
 from io import BytesIO
-from .decrypt import get_sha256, decrypt_image, decrypt_image_v2
+from comfyui_photoshop.decrypt import (get_sha256, dencrypt_image, dencrypt_image_v2)
 
 # Set up paths
 nodepath = os.path.join(
@@ -220,9 +220,9 @@ async def handle_render_done(request):
             pnginfo = image.info or {}
             if 'Encrypt' in pnginfo:
                 if pnginfo["Encrypt"] == 'pixel_shuffle':
-                    decrypt_image(image, get_sha256(password))
+                    dencrypt_image(image, get_sha256(password))
                 elif pnginfo["Encrypt"] == 'pixel_shuffle_2':
-                    decrypt_image_v2(image, get_sha256(password))
+                    dencrypt_image_v2(image, get_sha256(password))
             
             # 将解密后的图片转换为base64
             buffered = BytesIO()
